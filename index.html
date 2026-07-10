@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pattern Generator — Locus</title>
+<style>
+  :root {
+    --bg: #f4f4f2;
+    --panel: #ffffff;
+    --ink: #14151a;
+    --muted: #6b6d76;
+    --line: #e2e2de;
+    --accent: #1b4dff;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .panel {
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+    overflow-y: auto;
+    padding: 20px 18px 60px;
+  }
+  .panel h1 {
+    font-size: 15px;
+    letter-spacing: .02em;
+    margin: 0 0 2px;
+  }
+  .panel .sub { color: var(--muted); font-size: 12px; margin: 0 0 20px; }
+
+  .group { margin-bottom: 22px; }
+  .group > label.title {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .row label { font-size: 13px; flex: 0 0 auto; }
+  .row input.val {
+    font-variant-numeric: tabular-nums; font-size: 12px; color: var(--ink);
+    width: 52px; text-align: right; padding: 3px 5px;
+    border: 1px solid var(--line); border-radius: 6px; background: #fbfbfa;
+  }
+  .row input.val:focus { outline: none; border-color: var(--accent); }
+  .row input.val::-webkit-outer-spin-button, .row input.val::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=range] { flex: 1; accent-color: var(--accent); }
+
+  .seg { display: flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .seg button {
+    flex: 1; border: 0; background: var(--panel); padding: 7px 4px; font-size: 12px; cursor: pointer; color: var(--muted);
+  }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.on { background: var(--ink); color: #fff; }
+
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px; }
+  .glyph-btn {
+    aspect-ratio: 1; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+    cursor: pointer; padding: 8px; display: grid; place-items: center; position: relative;
+  }
+  .glyph-btn svg { width: 100%; height: 100%; }
+  .glyph-btn.on { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  .glyph-btn.on::after {
+    content: "✓"; position: absolute; top: 2px; right: 4px; font-size: 10px; color: var(--accent);
+  }
+
+  textarea {
+    width: 100%; min-height: 70px; resize: vertical; font: 11px/1.4 ui-monospace, Menlo, monospace;
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; background: #fbfbfa;
+  }
+
+  .color-row { display: flex; gap: 14px; }
+  .color-row .cc { display: flex; align-items: center; gap: 8px; }
+  .color-row input[type=color] { width: 34px; height: 28px; border: 1px solid var(--line); border-radius: 6px; padding: 0; background: none; cursor: pointer; }
+
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  button.action {
+    flex: 1 1 auto; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    padding: 9px 10px; border-radius: var(--radius); cursor: pointer; font-size: 12.5px; font-weight: 500;
+  }
+  button.action:hover { border-color: var(--ink); }
+  button.action.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+  button.action.primary:hover { background: #000; }
+
+  .hint { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  /* ---------- Stage ---------- */
+  .stage {
+    display: grid; place-items: center; padding: 32px; overflow: auto; background:
+      repeating-conic-gradient(#ececea 0% 25%, #f4f4f2 0% 50%) 50% / 22px 22px;
+  }
+  .canvas-wrap {
+    box-shadow: 0 8px 40px rgba(0,0,0,.14);
+    max-width: 100%; max-height: 100%;
+    line-height: 0;
+  }
+  .canvas-wrap svg { display: block; max-width: 100%; max-height: calc(100vh - 64px); height: auto; }
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 12px;
+    opacity: 0; transition: opacity .2s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+  <aside class="panel">
+    <h1>Pattern Generator</h1>
+    <p class="sub">Grid-based generative glyph patterns</p>
+
+    <div class="group">
+      <label class="title">Icons</label>
+      <div class="swatches" id="glyphSwatches"></div>
+      <div style="margin-top:12px">
+        <label class="title" style="margin-bottom:6px">Custom SVG (paste one or more &lt;svg&gt;)</label>
+        <textarea id="customSvg" placeholder="&lt;svg viewBox='0 0 24 24'&gt;&lt;path d='...'/&gt;&lt;/svg&gt;"></textarea>
+        <div class="hint">Paste full &lt;svg&gt; tags. They join the set above. Use <code>currentColor</code> or leave unstyled to inherit the foreground colour.</div>
+      </div>
+    </div>
+
+    <div class="group">
+      <label class="title">Layout</label>
+      <div class="row">
+        <label>Cell size</label>
+        <input type="range" id="cell" min="6" max="80" value="14">
+        <input type="number" class="val" id="cellV">
+      </div>
+      <div class="row">
+        <label>Icon scale</label>
+        <input type="range" id="scale" min="20" max="100" value="72">
+        <input type="number" class="val" id="scaleV">
+      </div>
+      <div class="row">
+        <label>Size jitter</label>
+        <input type="range" id="jitter" min="0" max="100" value="0">
+        <input type="number" class="val" id="jitterV">
+      </div>
+    </div>
+
+    <div class="group">
+      <label class="title">Density</label>
+      <div class="row">
+        <label>Fill</label>
+        <input type="range" id="density" min="0" max="100" value="55">
+        <input type="number" class="val" id="densityV">
+      </div>
+      <div class="seg" id="distMode">
+        <button data-mode="uniform">Uniform</button>
+        <button data-mode="clustered">Clustered</button>
+        <button data-mode="blocky" class="on">Blocky</button>
+      </div>
+      <div class="row" id="clusterRow" style="margin-top:12px">
+        <label>Cluster scale</label>
+        <input type="range" id="clusterScale" min="1" max="30" value="9">
+        <input type="number" class="val" id="clusterScaleV">
+      </div>
+      <div class="row" id="blockRow" style="margin-top:12px">
+        <label>Block size</label>
+        <input type="range" id="block" min="2" max="16" value="8">
+        <input type="number" class="val" id="blockV">
+      </div>
+      <div class="row" id="solidRow">
+        <label>Solid blocks</label>
+        <input type="range" id="solid" min="0" max="100" value="10">
+        <input type="number" class="val" id="solidV">
+      </div>
+      <div class="row" id="mixRow">
+        <label>Icon mix</label>
+        <input type="range" id="mix" min="0" max="100" value="60">
+        <input type="number" class="val" id="mixV">
+      </div>
+      <div class="row" id="cutRow">
+        <label>Cutouts</label>
+        <input type="range" id="cut" min="0" max="100" value="30">
+        <input type="number" class="val" id="cutV">
+      </div>
+    </div>
+
+    <div class="group">
+      <label class="title">Canvas</label>
+      <div class="row">
+        <label>Width</label>
+        <input type="range" id="cw" min="300" max="1600" value="720" step="20">
+        <input type="number" class="val" id="cwV">
+      </div>
+      <div class="row">
+        <label>Height</label>
+        <input type="range" id="ch" min="300" max="1600" value="720" step="20">
+        <input type="number" class="val" id="chV">
+      </div>
+      <div class="color-row" style="margin-top:6px">
+        <div class="cc"><input type="color" id="fg" value="#c6f732"><label>Ink</label></div>
+        <div class="cc"><input type="color" id="bgc" value="#000000"><label>Ground</label></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <label class="title">Seed</label>
+      <div class="row">
+        <input type="range" id="seed" min="1" max="9999" value="42">
+        <input type="number" class="val" id="seedV">
+      </div>
+      <div class="btns">
+        <button class="action primary" id="shuffle">Shuffle</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <label class="title">Export</label>
+      <div class="btns">
+        <button class="action" id="copySvg">Copy SVG</button>
+        <button class="action" id="dlSvg">SVG</button>
+        <button class="action" id="dlPng">PNG</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="stage">
+    <div class="canvas-wrap" id="wrap"></div>
+  </main>
+  <div class="toast" id="toast"></div>
+
+<script>
+/* ---------------------------------------------------------------
+   Locus glyph library. Each entry carries its own viewBox and
+   normalised inner SVG markup using fill = currentColor.
+----------------------------------------------------------------*/
+const LIB = {
+  dot:      {vb:"0 0 16 16", inner:`<circle cx="8" cy="8" r="2.4" fill="currentColor"/>`},
+  circle:   {vb:"0 0 16 16", inner:`<path d="M8 0C12.4183 0 16 3.58172 16 8C16 12.4183 12.4183 16 8 16C3.58172 16 0 12.4183 0 8C0 3.58172 3.58172 0 8 0ZM8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2ZM8 4C10.2091 4 12 5.79086 12 8C12 10.2091 10.2091 12 8 12C5.79086 12 4 10.2091 4 8C4 5.79086 5.79086 4 8 4ZM8 6C6.89543 6 6 6.89543 6 8C6 9.10457 6.89543 10 8 10C9.10457 10 10 9.10457 10 8C10 6.89543 9.10457 6 8 6Z" fill="currentColor"/>`},
+  circle2:  {vb:"0 0 16 16", inner:`<path d="M8 0C12.4183 0 16 3.58172 16 8C16 12.4183 12.4183 16 8 16C3.58172 16 0 12.4183 0 8C0 3.58172 3.58172 0 8 0ZM8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2ZM8 4C10.2091 4 12 5.79086 12 8C12 10.2091 10.2091 12 8 12C5.79086 12 4 10.2091 4 8C4 5.79086 5.79086 4 8 4Z" fill="currentColor"/>`},
+  circle3:  {vb:"0 0 16 16", inner:`<path d="M14 0C15.1046 0 16 0.895431 16 2V14C16 15.1046 15.1046 16 14 16H2C0.895431 16 0 15.1046 0 14V2C0 0.895431 0.895431 0 2 0H14ZM8 3C5.23858 3 3 5.23858 3 8C3 10.7614 5.23858 13 8 13C10.7614 13 13 10.7614 13 8C13 5.23858 10.7614 3 8 3Z" fill="currentColor"/>`},
+  cross1:   {vb:"0 0 16 16", inner:`<path d="M5 0C6.10457 0 7 0.895431 7 2V5C7 5.55228 7.44772 6 8 6C8.55228 6 9 5.55228 9 5V2C9 0.895431 9.89543 4.83192e-08 11 0H14C15.1046 0 16 0.895431 16 2V5C16 6.10457 15.1046 7 14 7H11C10.4477 7 10 7.44772 10 8C10 8.55228 10.4477 9 11 9H14C15.1046 9 16 9.89543 16 11V14C16 15.1046 15.1046 16 14 16H11C9.89543 16 9 15.1046 9 14V11C9 10.4477 8.55228 10 8 10C7.44772 10 7 10.4477 7 11V14C7 15.1046 6.10457 16 5 16H2C0.895431 16 4.83199e-08 15.1046 0 14V11C0 9.89543 0.895431 9 2 9H5C5.55228 9 6 8.55228 6 8C6 7.44772 5.55228 7 5 7H2C0.895431 7 4.83199e-08 6.10457 0 5V2C0 0.895431 0.895431 4.83192e-08 2 0H5Z" fill="currentColor"/>`},
+  cross2:   {vb:"0 0 16 16", inner:`<path d="M12.5799 0.605242C13.3609 -0.175655 14.627 -0.175756 15.408 0.605242C16.1888 1.38625 16.1888 2.65236 15.408 3.43337L10.8318 8.00954L15.4099 12.5877C16.1905 13.3687 16.1907 14.6349 15.4099 15.4158C14.6289 16.1968 13.3619 16.1968 12.5808 15.4158L8.0027 10.8377L3.42555 15.4158C2.64454 16.1966 1.37844 16.1966 0.597429 15.4158C-0.183569 14.6348 -0.183467 13.3687 0.597429 12.5877L5.17458 8.00954L0.599382 3.43337C-0.181667 2.65232 -0.181667 1.38629 0.599382 0.605242C1.38044 -0.175655 2.64651 -0.175756 3.42751 0.605242L8.00368 5.18141L12.5799 0.605242Z" fill="currentColor"/>`},
+  cross3:   {vb:"0 0 16 16", inner:`<path d="M10.4775 6.23242L8.70996 8L10.4775 9.76758L9.77051 10.4746L8.00293 8.70703L6.23535 10.4756L5.52832 9.76758L7.29492 8L5.52734 6.23242L6.23535 5.52539L8.00293 7.29297L9.77051 5.52539L10.4775 6.23242Z" fill="currentColor"/>`},
+  plus:     {vb:"0 0 16 16", inner:`<path d="M8.5 7.5H11V8.5H8.5V11H7.5V8.5H5V7.5H7.5V5H8.5V7.5Z" fill="currentColor"/>`},
+  corners:  {vb:"0 0 16 16", inner:`<path d="M2 16H0V14H2V16Z" fill="currentColor"/><path d="M16 16H14V14H16V16Z" fill="currentColor"/><path d="M2 2H0V0H2V2Z" fill="currentColor"/><path d="M16 2H14V0H16V2Z" fill="currentColor"/>`},
+  diagonal: {vb:"0 0 16 16", inner:`<path d="M11.3555 10.6465L10.6484 11.3535L4.64844 5.35352L5.35547 4.64648L11.3555 10.6465Z" fill="currentColor"/>`},
+};
+const DEFAULT_ON = Object.keys(LIB);
+
+/* ---------------- Seeded RNG + value noise ------------------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function makeNoise(seed){
+  // hashed value noise with smooth interpolation
+  const rand = mulberry32(seed);
+  const perm = new Float32Array(256*256).map(()=>rand());
+  const at=(x,y)=>perm[((x&255)*256+(y&255))];
+  const sm=t=>t*t*(3-2*t);
+  return (x,y)=>{
+    const xi=Math.floor(x), yi=Math.floor(y);
+    const xf=x-xi, yf=y-yi;
+    const a=at(xi,yi), b=at(xi+1,yi), c=at(xi,yi+1), d=at(xi+1,yi+1);
+    const u=sm(xf), v=sm(yf);
+    return (a*(1-u)+b*u)*(1-v)+(c*(1-u)+d*u)*v;
+  };
+}
+
+/* -------------------------- State ---------------------------- */
+const S = {
+  active: new Set(DEFAULT_ON),
+  custom: [],           // array of inner-markup strings + viewBox
+  cell: 14, scale: 72, jitter: 0,
+  density: 55, mode: "blocky", clusterScale: 9,
+  block: 8, solid: 10, mix: 60, cut: 30,
+  cw: 720, ch: 720,
+  fg: "#c6f732", bg: "#000000",
+  seed: 42,
+};
+
+/* ----------------------- Glyph swatches ---------------------- */
+const swatchEl = document.getElementById("glyphSwatches");
+function renderSwatches(){
+  swatchEl.innerHTML = "";
+  Object.keys(LIB).forEach(key=>{
+    const b=document.createElement("button");
+    b.className="glyph-btn"+(S.active.has(key)?" on":"");
+    b.innerHTML=`<svg viewBox="${LIB[key].vb}" style="color:#14151a">${LIB[key].inner}</svg>`;
+    b.onclick=()=>{ S.active.has(key)?S.active.delete(key):S.active.add(key); renderSwatches(); render(); };
+    swatchEl.appendChild(b);
+  });
+}
+
+/* ------------------ Collect active glyph set ----------------- */
+function glyphSet(){
+  const set = [...S.active].map(k=>LIB[k]);
+  S.custom.forEach(c=>set.push(c));
+  return set.length?set:[LIB.dot];
+}
+
+/* ---------------- Parse custom SVG textarea ------------------ */
+function parseCustom(text){
+  const out=[]; if(!text.trim()) return out;
+  const doc=new DOMParser().parseFromString(`<root xmlns="http://www.w3.org/2000/svg">${text}</root>`,"image/svg+xml");
+  doc.querySelectorAll("svg").forEach(svg=>{
+    const vb=svg.getAttribute("viewBox")||`0 0 ${svg.getAttribute("width")||24} ${svg.getAttribute("height")||24}`;
+    out.push({vb, inner: svg.innerHTML});
+  });
+  return out;
+}
+
+/* --------------------- Build the SVG ------------------------- */
+function buildSvg(){
+  const {cw,ch,cell,fg,bg,seed}=S;
+  const cols=Math.ceil(cw/cell), rows=Math.ceil(ch/cell);
+  const rand=mulberry32(seed*7919+1);
+  const noise=makeNoise(seed);
+  const set=glyphSet();
+  const nf=1/S.clusterScale;      // noise frequency
+  const dens=S.density/100;
+
+  /* ---- Blocky mode: precompute per-block info + solid slabs ---- */
+  let blockInfo=null, bcols=0, solids="";
+  const B=S.block;
+  if(S.mode==="blocky"){
+    bcols=Math.ceil(cols/B);
+    const brows=Math.ceil(rows/B);
+    const bf=0.42;                 // block-field frequency: neighbouring blocks correlate
+    blockInfo=[];
+    for(let br=0;br<brows;br++){
+      for(let bc=0;bc<bcols;bc++){
+        const brand=mulberry32(seed*31 + br*7919 + bc*104729 + 5);
+        const v=noise(bc*bf, br*bf) + (dens-0.5)*1.4;   // shift field by density
+        // quantised levels: 0 empty, 1 sparse dots, 2 dense icons, 3 solid slab
+        let level;
+        if(v<0.35) level=0;
+        else if(v<0.58) level=1;
+        else level=2;
+        if(level===2 && brand()<S.solid/100) level=3;
+        // per-block glyph palette: size and dominance driven by the Icon mix slider
+        // mix 0 -> single-glyph runs; mix 100 -> up to 5 distinct glyphs, near-even picks
+        const mix=S.mix/100;
+        const want=Math.max(1, Math.min(set.length, 1+Math.round(mix*4)));
+        const palette=[];
+        for(let t=0; palette.length<want && t<want*4; t++){
+          const g=set[Math.floor(brand()*set.length)];
+          if(!palette.includes(g)) palette.push(g);
+        }
+        const dominance=0.85-0.55*mix;
+        // per-block size variant: most blocks full-scale, some fine-dot scale
+        const sizeMul = level===1 ? 0.4 : (brand()<0.3 ? 0.55 : 1);
+        blockInfo.push({level, palette, sizeMul, dominance});
+        if(level===3){
+          const x=bc*B*cell, y=br*B*cell;
+          const w=Math.min(B*cell, cw-x), h=Math.min(B*cell, ch-y);
+          solids+=`<rect x="${x}" y="${y}" width="${w.toFixed(2)}" height="${h.toFixed(2)}"/>`;
+        }
+      }
+    }
+  }
+
+  let cells="";
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      let g, sizeMul=1;
+      if(S.mode==="blocky"){
+        const bi=blockInfo[Math.floor(r/B)*bcols+Math.floor(c/B)];
+        if(bi.level===0||bi.level===3) continue;          // empty, or slab already drawn
+        const p = bi.level===1 ? 0.45 : 0.95;             // sparse vs dense fill rate
+        if(rand()>=p) continue;
+        // organic cutouts: a smooth offset noise field carves blobby voids
+        // across block boundaries, like the Clustered mode's negative space
+        if(S.cut>0){
+          const m=noise(c*0.11+53.17, r*0.11+91.3);
+          if(m < (S.cut/100)*0.55) continue;
+        }
+        // dominant-glyph runs, loosened by Icon mix
+        g = (bi.palette.length===1||rand()<bi.dominance) ? bi.palette[0]
+          : bi.palette[1+Math.floor(rand()*(bi.palette.length-1))];
+        sizeMul=bi.sizeMul;
+      } else if(S.mode==="clustered"){
+        const n=noise(c*nf, r*nf);          // 0..1 organic field
+        // remap so density slider shifts how much of the field passes
+        if(n + (dens-0.5)*1.2 <= 0.5) continue;
+        g=set[Math.floor(rand()*set.length)];
+      } else {
+        if(rand() >= dens) continue;        // uniform
+        g=set[Math.floor(rand()*set.length)];
+      }
+
+      const baseSize=cell*(S.scale/100)*sizeMul;
+      const jit=1 - (S.jitter/100)*rand();   // shrink up to jitter%
+      const size=baseSize*jit;
+      const x=c*cell+(cell-size)/2;
+      const y=r*cell+(cell-size)/2;
+      cells+=`<svg x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${size.toFixed(2)}" height="${size.toFixed(2)}" viewBox="${g.vb}">${g.inner}</svg>`;
+    }
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${cw}" height="${ch}" viewBox="0 0 ${cw} ${ch}">`
+    + `<rect width="${cw}" height="${ch}" fill="${bg}"/>`
+    + `<g fill="${fg}" color="${fg}">${solids}${cells}</g></svg>`;
+}
+
+/* --------------------------- Render -------------------------- */
+const wrap=document.getElementById("wrap");
+let currentSvg="";
+function render(){
+  currentSvg=buildSvg();
+  wrap.innerHTML=currentSvg;
+}
+
+/* --------------------- Control wiring ------------------------ */
+function bindRange(id, key){
+  const el=document.getElementById(id), out=document.getElementById(id+"V");
+  out.min=el.min; out.max=el.max; out.step=el.step||"1";
+  const clamp=v=>Math.min(+el.max, Math.max(+el.min, v));
+  const apply=v=>{ S[key]=v; render(); };
+  el.addEventListener("input",()=>{ out.value=el.value; apply(+el.value); });
+  // typing: apply live when the number is valid, without fighting the caret
+  out.addEventListener("input",()=>{
+    const v=parseFloat(out.value);
+    if(isNaN(v)) return;
+    const c=clamp(v); el.value=c; apply(c);
+  });
+  // blur/Enter: snap the field itself to the clamped value
+  out.addEventListener("change",()=>{
+    const v=parseFloat(out.value);
+    const c=isNaN(v) ? +el.value : clamp(v);
+    out.value=c; el.value=c; apply(c);
+  });
+  out.value=el.value; apply(+el.value);
+}
+bindRange("cell","cell");
+bindRange("scale","scale");
+bindRange("jitter","jitter");
+bindRange("density","density");
+bindRange("clusterScale","clusterScale");
+bindRange("block","block");
+bindRange("solid","solid");
+bindRange("mix","mix");
+bindRange("cut","cut");
+bindRange("cw","cw");
+bindRange("ch","ch");
+bindRange("seed","seed");
+
+document.getElementById("fg").addEventListener("input",e=>{S.fg=e.target.value;render();});
+document.getElementById("bgc").addEventListener("input",e=>{S.bg=e.target.value;render();});
+
+function updateModeRows(){
+  document.getElementById("clusterRow").style.display = S.mode==="clustered" ? "flex" : "none";
+  document.getElementById("blockRow").style.display   = S.mode==="blocky" ? "flex" : "none";
+  document.getElementById("solidRow").style.display   = S.mode==="blocky" ? "flex" : "none";
+  document.getElementById("mixRow").style.display     = S.mode==="blocky" ? "flex" : "none";
+  document.getElementById("cutRow").style.display     = S.mode==="blocky" ? "flex" : "none";
+}
+document.querySelectorAll("#distMode button").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll("#distMode button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); S.mode=b.dataset.mode;
+    updateModeRows();
+    render();
+  };
+});
+updateModeRows();
+
+document.getElementById("customSvg").addEventListener("input",e=>{
+  S.custom=parseCustom(e.target.value); render();
+});
+
+document.getElementById("shuffle").onclick=()=>{
+  const s=Math.floor(Math.random()*9999)+1;
+  S.seed=s; const el=document.getElementById("seed"); el.value=s;
+  document.getElementById("seedV").value=s; render();
+};
+
+/* --------------------------- Export -------------------------- */
+const toast=document.getElementById("toast");
+function flash(msg){toast.textContent=msg;toast.classList.add("show");setTimeout(()=>toast.classList.remove("show"),1400);}
+
+document.getElementById("copySvg").onclick=async()=>{
+  try{ await navigator.clipboard.writeText(currentSvg); flash("SVG copied"); }
+  catch{ flash("Copy failed"); }
+};
+function download(name, blob){
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+document.getElementById("dlSvg").onclick=()=>{
+  download("pattern.svg", new Blob([currentSvg],{type:"image/svg+xml"})); flash("SVG downloaded");
+};
+document.getElementById("dlPng").onclick=()=>{
+  const scale=2;
+  const img=new Image();
+  const blob=new Blob([currentSvg],{type:"image/svg+xml"});
+  const url=URL.createObjectURL(blob);
+  img.onload=()=>{
+    const cv=document.createElement("canvas");
+    cv.width=S.cw*scale; cv.height=S.ch*scale;
+    const ctx=cv.getContext("2d"); ctx.scale(scale,scale); ctx.drawImage(img,0,0);
+    cv.toBlob(b=>{ download("pattern.png", b); flash("PNG downloaded"); URL.revokeObjectURL(url); });
+  };
+  img.src=url;
+};
+
+/* --------------------------- Init ---------------------------- */
+renderSwatches();
+render();
+</script>
+</body>
+</html>
