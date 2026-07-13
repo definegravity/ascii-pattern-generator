@@ -22,12 +22,17 @@
     background: var(--bg);
     display: grid;
     grid-template-columns: 320px 1fr;
+    grid-template-rows: 100vh;
     height: 100vh;
     overflow: hidden;
   }
 
   /* ---------- Sidebar ---------- */
+  /* Regions are pinned to explicit grid cells so injected siblings
+     (in-app browser toolbars etc.) cannot shift auto-placement. */
   .panel {
+    grid-column: 1;
+    grid-row: 1;
     background: var(--panel);
     border-right: 1px solid var(--line);
     overflow-y: auto;
@@ -102,8 +107,17 @@
 
   /* ---------- Stage ---------- */
   .stage {
+    grid-column: 2;
+    grid-row: 1;
     display: grid; place-items: center; padding: 32px; overflow: auto; background:
       repeating-conic-gradient(#ececea 0% 25%, #f4f4f2 0% 50%) 50% / 22px 22px;
+  }
+  /* Narrow viewports: stack the panel above the canvas */
+  @media (max-width: 860px) {
+    body { display: block; height: auto; overflow: auto; }
+    .panel { border-right: 0; border-bottom: 1px solid var(--line); }
+    .stage { min-height: 70vh; padding: 16px; }
+    .canvas-wrap svg { max-height: none; }
   }
   .canvas-wrap {
     box-shadow: 0 8px 40px rgba(0,0,0,.14);
