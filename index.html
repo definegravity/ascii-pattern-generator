@@ -92,6 +92,9 @@
 
   .color-row { display: flex; gap: 14px; }
   .color-row .cc { display: flex; align-items: center; gap: 8px; }
+  .color-row .cc.off { opacity: .35; pointer-events: none; }
+  .checkline { display: flex; align-items: center; gap: 7px; font-size: 13px; margin-top: 12px; cursor: pointer; }
+  .checkline input { accent-color: var(--accent); }
   .color-row input[type=color] { width: 34px; height: 28px; border: 1px solid var(--line); border-radius: 6px; padding: 0; background: none; cursor: pointer; }
 
   .btns { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -220,8 +223,10 @@
       </div>
       <div class="color-row" style="margin-top:6px">
         <div class="cc"><input type="color" id="fg" value="#c6f732"><label>Ink</label></div>
-        <div class="cc"><input type="color" id="bgc" value="#000000"><label>Ground</label></div>
+        <div class="cc" id="groundCc"><input type="color" id="bgc" value="#000000"><label>Ground</label></div>
       </div>
+      <label class="checkline"><input type="checkbox" id="transparent"> Transparent ground</label>
+      <div class="hint">Exports carry no background layer, so the SVG drops straight into Figma.</div>
     </div>
 
     <div class="group">
@@ -294,7 +299,7 @@ const S = {
   density: 55, mode: "blocky", clusterScale: 9,
   block: 8, solid: 10, mix: 60, cut: 30,
   cw: 720, ch: 720,
-  fg: "#c6f732", bg: "#000000",
+  fg: "#c6f732", bg: "#000000", transparent: false,
   seed: 42,
 };
 
@@ -417,7 +422,7 @@ function buildSvg(){
     }
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${cw}" height="${ch}" viewBox="0 0 ${cw} ${ch}">`
-    + `<rect width="${cw}" height="${ch}" fill="${bg}"/>`
+    + (S.transparent ? "" : `<rect width="${cw}" height="${ch}" fill="${bg}"/>`)
     + `<g fill="${fg}" color="${fg}">${solids}${cells}</g></svg>`;
 }
 
@@ -465,6 +470,11 @@ bindRange("seed","seed");
 
 document.getElementById("fg").addEventListener("input",e=>{S.fg=e.target.value;render();});
 document.getElementById("bgc").addEventListener("input",e=>{S.bg=e.target.value;render();});
+document.getElementById("transparent").addEventListener("change",e=>{
+  S.transparent=e.target.checked;
+  document.getElementById("groundCc").classList.toggle("off", S.transparent);
+  render();
+});
 
 function updateModeRows(){
   document.getElementById("clusterRow").style.display = S.mode==="clustered" ? "flex" : "none";
