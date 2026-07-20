@@ -6,18 +6,19 @@
 <title>Pattern Generator — Locus</title>
 <style>
   :root {
-    --bg: #f4f4f2;
-    --panel: #ffffff;
-    --ink: #14151a;
-    --muted: #6b6d76;
-    --line: #e2e2de;
-    --accent: #1b4dff;
+    --bg: #141512;
+    --panel: #1b1c18;
+    --ink: #e9e7dc;
+    --muted: #90928a;
+    --line: #2a2b26;
+    --accent: #c6f732;
+    --field: #202119;
     --radius: 8px;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
   body {
-    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font: 12.5px/1.55 ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
     color: var(--ink);
     background: var(--bg);
     display: grid;
@@ -39,11 +40,13 @@
     padding: 20px 18px 60px;
   }
   .panel h1 {
-    font-size: 15px;
-    letter-spacing: .02em;
-    margin: 0 0 2px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin: 0 0 3px;
   }
-  .panel .sub { color: var(--muted); font-size: 12px; margin: 0 0 20px; }
+  .panel .sub { color: var(--muted); font-size: 11px; margin: 0 0 24px; }
 
   .group { margin-bottom: 22px; }
   .group > label.title {
@@ -60,8 +63,9 @@
   .row label { font-size: 13px; flex: 0 0 auto; }
   .row input.val {
     font-variant-numeric: tabular-nums; font-size: 12px; color: var(--ink);
+    font-family: inherit;
     width: 52px; text-align: right; padding: 3px 5px;
-    border: 1px solid var(--line); border-radius: 6px; background: #fbfbfa;
+    border: 1px solid var(--line); border-radius: 6px; background: var(--field);
   }
   .row input.val:focus { outline: none; border-color: var(--accent); }
   .row input.val::-webkit-outer-spin-button, .row input.val::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -69,26 +73,31 @@
 
   .seg { display: flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
   .seg button {
-    flex: 1; border: 0; background: var(--panel); padding: 7px 4px; font-size: 12px; cursor: pointer; color: var(--muted);
+    flex: 1; border: 0; background: var(--field); padding: 7px 4px; font-size: 11.5px; cursor: pointer; color: var(--muted);
+    font-family: inherit;
   }
   .seg button + button { border-left: 1px solid var(--line); }
-  .seg button.on { background: var(--ink); color: #fff; }
+  .seg button.on { background: var(--accent); color: #141512; font-weight: 600; }
 
   .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px; }
   .glyph-btn {
-    aspect-ratio: 1; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+    aspect-ratio: 1; border: 1px solid var(--line); border-radius: var(--radius); background: var(--field);
     cursor: pointer; padding: 8px; display: grid; place-items: center; position: relative;
   }
-  .glyph-btn svg { width: 100%; height: 100%; }
-  .glyph-btn.on { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  .glyph-btn svg { width: 100%; height: 100%; color: var(--muted); }
+  .glyph-btn.on svg { color: var(--ink); }
+  .glyph-btn.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
   .glyph-btn.on::after {
     content: "✓"; position: absolute; top: 2px; right: 4px; font-size: 10px; color: var(--accent);
   }
 
   textarea {
     width: 100%; min-height: 70px; resize: vertical; font: 11px/1.4 ui-monospace, Menlo, monospace;
-    border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; background: #fbfbfa;
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 8px;
+    background: var(--field); color: var(--ink);
   }
+  textarea::placeholder { color: var(--muted); opacity: .6; }
+  textarea:focus { outline: none; border-color: var(--accent); }
 
   .color-row { display: flex; gap: 14px; }
   .color-row .cc { display: flex; align-items: center; gap: 8px; }
@@ -99,12 +108,13 @@
 
   .btns { display: flex; gap: 8px; flex-wrap: wrap; }
   button.action {
-    flex: 1 1 auto; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
-    padding: 9px 10px; border-radius: var(--radius); cursor: pointer; font-size: 12.5px; font-weight: 500;
+    flex: 1 1 auto; border: 1px solid var(--line); background: var(--field); color: var(--ink);
+    padding: 9px 10px; border-radius: var(--radius); cursor: pointer; font-size: 12px; font-weight: 500;
+    font-family: inherit;
   }
-  button.action:hover { border-color: var(--ink); }
-  button.action.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
-  button.action.primary:hover { background: #000; }
+  button.action:hover { border-color: var(--muted); }
+  button.action.primary { background: var(--accent); color: #141512; border-color: var(--accent); font-weight: 600; }
+  button.action.primary:hover { filter: brightness(1.08); }
 
   .hint { font-size: 11px; color: var(--muted); margin-top: 6px; }
 
@@ -113,7 +123,7 @@
     grid-column: 2;
     grid-row: 1;
     display: grid; place-items: center; padding: 32px; overflow: auto; background:
-      repeating-conic-gradient(#ececea 0% 25%, #f4f4f2 0% 50%) 50% / 22px 22px;
+      repeating-conic-gradient(#1a1b17 0% 25%, #141512 0% 50%) 50% / 22px 22px;
   }
   /* Narrow viewports: stack the panel above the canvas */
   @media (max-width: 860px) {
@@ -123,14 +133,14 @@
     .canvas-wrap svg { max-height: none; }
   }
   .canvas-wrap {
-    box-shadow: 0 8px 40px rgba(0,0,0,.14);
+    box-shadow: 0 12px 48px rgba(0,0,0,.5);
     max-width: 100%; max-height: 100%;
     line-height: 0;
   }
   .canvas-wrap svg { display: block; max-width: 100%; max-height: calc(100vh - 64px); height: auto; }
   .toast {
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-    background: var(--ink); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 12px;
+    background: var(--accent); color: #141512; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;
     opacity: 0; transition: opacity .2s; pointer-events: none;
   }
   .toast.show { opacity: 1; }
@@ -310,7 +320,7 @@ function renderSwatches(){
   Object.keys(LIB).forEach(key=>{
     const b=document.createElement("button");
     b.className="glyph-btn"+(S.active.has(key)?" on":"");
-    b.innerHTML=`<svg viewBox="${LIB[key].vb}" style="color:#14151a">${LIB[key].inner}</svg>`;
+    b.innerHTML=`<svg viewBox="${LIB[key].vb}">${LIB[key].inner}</svg>`;
     b.onclick=()=>{ S.active.has(key)?S.active.delete(key):S.active.add(key); renderSwatches(); render(); };
     swatchEl.appendChild(b);
   });
