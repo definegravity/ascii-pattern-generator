@@ -1,6 +1,6 @@
-# ASCII Pattern Generator
+# Tessera
 
-A single-file, dependency-free tool for generating grid-based glyph patterns in the browser. Think ASCII-art-adjacent textures: fields of dots, crosses, rings and squares arranged in blocky clusters, organic scatters or uniform grids.
+Tessera is a single-file, dependency-free tool for generating grid-based glyph patterns in the browser. Think ASCII-art-adjacent textures: fields of dots, crosses, rings and squares arranged in blocky clusters, organic scatters or uniform grids.
 
 ![Example output: neon green glyphs clustered in rectangular blocks on black](https://raw.githubusercontent.com/definegravity/ascii-pattern-generator/main/example.png)
 
