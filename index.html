@@ -223,7 +223,7 @@
     background-color: #151612;
   }
   .canvas-wrap {
-    position: absolute; inset: 36px 36px 64px;
+    position: absolute; inset: 36px;
     display: flex; align-items: center; justify-content: center;
   }
   .canvas-wrap svg {
@@ -235,14 +235,6 @@
   .canvas-wrap.transparent svg {
     background: repeating-conic-gradient(#202119 0% 25%, #191a15 0% 50%) 50% / 16px 16px;
   }
-  .status {
-    position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
-    display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 14px 0 6px;
-    border-radius: 99px; background: var(--ink); color: var(--on-accent);
-    font: 500 11.5px/1 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap;
-  }
-  .status .dot { width: 20px; height: 20px; border-radius: 50%; background: var(--on-accent); display: grid; place-items: center; }
-  .status .dot::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 
   .toast {
     position: fixed; top: 24px; left: 50%; transform: translate(-50%, -6px);
@@ -262,7 +254,7 @@
     .crumbs .actions .btn span { display: none; }
     .crumbs .actions .btn { padding: 0 10px; }
     .titlebar { padding: 18px 16px 14px; }
-    .canvas-wrap { position: relative; inset: auto; padding: 16px 16px 64px; min-height: 60vh; }
+    .canvas-wrap { position: relative; inset: auto; padding: 16px; min-height: 60vh; }
   }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -394,7 +386,6 @@
 
     <div class="stage">
       <div class="canvas-wrap" id="wrap"></div>
-      <div class="status" id="status"><span class="dot"></span><span id="statusText"></span></div>
     </div>
   </main>
 </div>
@@ -576,7 +567,6 @@ function buildSvg(){
 const wrap=document.getElementById("wrap");
 let currentSvg="";
 const ranges=[...document.querySelectorAll("input[type=range]")];
-const MODE_LABEL={uniform:"Uniform", clustered:"Clustered", blocky:"Blocky"};
 function render(){
   currentSvg=buildSvg();
   wrap.innerHTML=currentSvg;
@@ -585,8 +575,6 @@ function render(){
   // slider fills follow their values
   ranges.forEach(r=>r.style.setProperty("--p", ((r.value-r.min)/(r.max-r.min)*100)+"%"));
   document.getElementById("dims").innerHTML=`${S.cw} × ${S.ch}<small>px</small>`;
-  document.getElementById("statusText").textContent=
-    `${MODE_LABEL[S.mode]} · ${Math.ceil(S.cw/S.cell)} × ${Math.ceil(S.ch/S.cell)} cells · seed ${S.seed}`;
 }
 
 /* --------------------- Control wiring ------------------------ */
